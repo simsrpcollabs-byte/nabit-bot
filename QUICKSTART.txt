@@ -1,0 +1,22 @@
+KIDDO QUICK START (WINDOWS)
+
+1. Put this folder where you want your bot project.
+2. Open PowerShell inside the folder.
+3. Run:
+
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   py -m pip install -r requirements.txt
+   Copy-Item .env.example .env
+   notepad .env
+
+4. Fill in DISCORD_TOKEN and OPENAI_API_KEY.
+5. For fast testing, put your Discord server ID in DEV_GUILD_ID.
+6. Save .env.
+7. Run:
+
+   py main.py
+
+8. In Discord, start with `/kiddo register`.
+
+NOTE: age_months means total months. A 16-year-old is 192 months.
