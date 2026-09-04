@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import { stageForMonths, ageLabel } from "./utils.js";
+assert.equal(stageForMonths(0), "Infant");
+assert.equal(stageForMonths(11), "Infant");
+assert.equal(stageForMonths(12), "Young Toddler");
+assert.equal(stageForMonths(24), "Toddler");
+assert.equal(stageForMonths(180), "Older Teen");
+assert.equal(ageLabel(8), "8 months");
+assert.equal(ageLabel(36), "3 years");
+console.log("KIDDO JS tests passed.");

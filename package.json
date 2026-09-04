@@ -1,14 +1,22 @@
 {
-  "name": "nabit-bot",
-  "version": "6.0.0",
-  "description": "Nabit Discord ordering bot with private shopping and public receipt-style order posts",
-  "main": "index.js",
+  "name": "kiddo-discord-bot",
+  "version": "3.0.0",
+  "private": true,
   "type": "module",
+  "description": "KIDDO - autonomous child behavior and development simulator for Discord roleplay servers",
+  "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "check": "node --check index.js && node --check commands.js && node --check worldCommands.js && node --check behavior.js && node --check database.js && node --check proxy.js",
+    "test": "node test.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
+    "better-sqlite3": "^11.10.0",
     "discord.js": "^14.19.3",
-    "dotenv": "^16.5.0"
+    "dotenv": "^16.5.0",
+    "openai": "^5.19.1"
   }
 }

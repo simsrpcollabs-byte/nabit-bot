@@ -1,40 +1,21 @@
-KIDDO — COMPLETE REPO REPLACEMENT
+KIDDO — COMPLETE JAVASCRIPT REPLACEMENT FOR NABIT
 
-This package is meant to REPLACE the existing Nabit GitHub repository.
-
-1. In the Nabit GitHub repo, delete the old Nabit source/config files.
-2. Upload EVERY file from this package to the ROOT of the repo.
-   Do not put them inside another folder.
-3. Commit the replacement.
-4. In Railway, keep the existing GitHub service connected to that repo.
-5. Replace old Nabit environment variables with KIDDO's variables:
-
-   DISCORD_TOKEN=your KIDDO Discord bot token
-   OPENAI_API_KEY=your OpenAI API key
+1. Open the GitHub repository currently used by Railway for Nabit.
+2. Delete the OLD Nabit source/config files.
+3. Upload ALL files from this ZIP directly to the repository root.
+4. Commit the changes.
+5. In Railway > Variables, make sure you have:
+   DISCORD_TOKEN=<KIDDO bot token>
+   OPENAI_API_KEY=<your OpenAI API key>
    OPENAI_MODEL=gpt-5.6-luna
    DATABASE_PATH=./kiddo.sqlite
-   DEV_GUILD_ID=your Discord server ID (optional, recommended while testing)
+6. You may optionally add DEV_GUILD_ID=<your Discord server ID> for instant slash-command syncing while testing.
+7. Railway should automatically redeploy.
+8. The startup command is npm start. There should be NO Python command.
+9. Check Deploy Logs for: KIDDO online as ...
 
-6. Railway will use railway.toml and start KIDDO with:
-   python main.py
-
-IMPORTANT DATABASE NOTE
-Railway service files can be ephemeral across redeploys. For permanent KIDDO profiles,
-attach a Railway Volume and set DATABASE_PATH to the mounted path, for example:
-
-   DATABASE_PATH=/data/kiddo.sqlite
-
-Do not upload a real .env file to GitHub. Only .env.example belongs in the repo.
-
-DISCORD PERMISSIONS
-- View Channels
-- Send Messages
-- Embed Links
-- Attach Files
-- Read Message History
-- Manage Webhooks
-- Manage Channels (needed to create the private kiddo-assets avatar channel)
-
-Invite scopes:
-- bot
-- applications.commands
+IMPORTANT:
+- If Discord still displays the old Nabit name/avatar, Railway is using Nabit's Discord token. Change DISCORD_TOKEN to the token for your KIDDO Discord application, or rename the old Discord application to KIDDO.
+- KIDDO needs Manage Webhooks for autonomous child proxy messages.
+- KIDDO needs Manage Channels to create the private kiddo-assets channel for avatar storage.
+- For persistent data on Railway, mount a Volume at /data and change DATABASE_PATH=/data/kiddo.sqlite.
