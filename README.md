@@ -131,3 +131,6 @@ The bot's visible Discord name/avatar come from the Discord application attached
 ## AI model
 
 The default is `gpt-5.6-luna`, a cost-sensitive GPT-5.6 model suitable for higher-volume narrative generation. You can change `OPENAI_MODEL` in Railway Variables.
+
+### Age-based temperament picker
+During `/kiddo register`, enter `age_months` first. The `primary_temperament` and `secondary_temperament` fields then show selectable Discord autocomplete options for that child's developmental stage. You do not need to type temperament labels manually.

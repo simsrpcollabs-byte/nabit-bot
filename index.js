@@ -4,6 +4,8 @@ import { KiddoDatabase } from "./database.js";
 import { BehaviorEngine } from "./behavior.js";
 import { kiddoCommand, handleKiddo } from "./commands.js";
 import { worldCommand, handleWorld } from "./worldCommands.js";
+import { TEMPERAMENTS } from "./constants.js";
+import { stageForMonths } from "./utils.js";
 
 const token = process.env.DISCORD_TOKEN;
 if (!token) throw new Error("DISCORD_TOKEN is missing. Add it in Railway Variables.");
@@ -32,8 +34,27 @@ client.once("ready", async () => {
 client.on("interactionCreate", async interaction => {
   try {
     if (interaction.isAutocomplete()) {
-      const focused = interaction.options.getFocused();
-      const names = db.childNames(interaction.guildId, focused).slice(0, 25);
+      const focused = interaction.options.getFocused(true);
+
+      if (["primary_temperament", "secondary_temperament"].includes(focused.name)) {
+        const ageMonths = interaction.options.getInteger("age_months");
+        if (ageMonths === null) {
+          return interaction.respond([{ name: "Enter age_months first", value: "Enter age_months first" }]);
+        }
+
+        const stage = stageForMonths(ageMonths);
+        const primary = interaction.options.getString("primary_temperament");
+        const query = String(focused.value || "").toLowerCase();
+        const options = (TEMPERAMENTS[stage] || [])
+          .filter(name => focused.name !== "secondary_temperament" || name !== primary)
+          .filter(name => name.toLowerCase().includes(query))
+          .slice(0, 25)
+          .map(name => ({ name, value: name }));
+
+        return interaction.respond(options);
+      }
+
+      const names = db.childNames(interaction.guildId, String(focused.value || "")).slice(0, 25);
       return interaction.respond(names.map(name => ({ name, value: name })));
     }
     if (!interaction.isChatInputCommand()) return;
