@@ -1,537 +1,235 @@
 import 'dotenv/config';
 import {
-  Client,
-  GatewayIntentBits,
-  REST,
-  Routes,
-  SlashCommandBuilder,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  StringSelectMenuBuilder,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle
+  Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder,
+  EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
+  StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle,
+  AttachmentBuilder
 } from 'discord.js';
+import { businesses, findBusiness, findItem } from './data.js';
+import { renderCheckout } from './renderer.js';
 
-const COLORS = {
-  grape: 0x7257E8,
-  yellow: 0xF8DD57,
-  lilac: 0xE7E0FF,
-  cream: 0xFFF9EE,
-  ink: 0x24212C
-};
+const GRAPE = 0x7257E8;
+const client = new Client({ intents:[GatewayIntentBits.Guilds] });
+const rest = new REST({version:'10'}).setToken(process.env.DISCORD_TOKEN);
+const commands = [new SlashCommandBuilder().setName('nabit').setDescription('Open Nabit').toJSON()];
 
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
-});
-
-const commands = [
-  new SlashCommandBuilder()
-    .setName('nabit')
-    .setDescription('Open Nabit')
-    .toJSON()
-];
-
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-
-// Temporary in-memory carts/orders for UI testing.
-// We will move these to Supabase once the app flow is approved.
+const sessions = new Map();
 const carts = new Map();
 const orders = new Map();
 
-function money(amount) {
-  return `Ň${Number(amount).toFixed(2)}`;
-}
+const money = n => `Ň${Number(n).toFixed(2)}`;
 
-function getCart(userId) {
-  if (!carts.has(userId)) {
-    carts.set(userId, {
-      restaurant: null,
-      items: [],
-      note: '',
-      deliveryLabel: 'Home',
-      deliveryAddress: 'Not set',
-      tip: 0
-    });
-  }
-  return carts.get(userId);
+function sessionFor(uid){
+  if(!sessions.has(uid)) sessions.set(uid,{name:null,deliveryLabel:'Home',deliveryAddress:'Vitara City'});
+  return sessions.get(uid);
 }
-
-function homeEmbed() {
-  return new EmbedBuilder()
-    .setColor(COLORS.grape)
-    .setAuthor({ name: 'nabit' })
-    .setTitle('Good food, delivered fast. 🍋')
-    .setDescription(
-      '📍 **Deliver to:** Home\n\n' +
-      'Need dinner? Snacks? Something sweet?\n' +
-      '**Need it? Nabit.**'
-    )
-    .addFields(
-      { name: 'Popular near you', value: 'Your Nabit restaurants will appear here once we add them.' }
-    )
-    .setFooter({ text: 'nabit • Need it? Nabit.' });
+function cartFor(uid){
+  if(!carts.has(uid)) carts.set(uid,{businessId:null,items:[]});
+  return carts.get(uid);
 }
-
-function homeRows() {
-  return [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('nabit_browse')
-        .setLabel('Browse Restaurants')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('nabit_search')
-        .setLabel('Search')
-        .setStyle(ButtonStyle.Secondary)
-    ),
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('nabit_orders')
-        .setLabel('Orders')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('nabit_favorites')
-        .setLabel('Favorites')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('nabit_bag')
-        .setLabel('Bag')
-        .setStyle(ButtonStyle.Secondary)
-    )
-  ];
+function homeEmbed(uid){
+  const s=sessionFor(uid);
+  return new EmbedBuilder().setColor(GRAPE).setAuthor({name:'nabit'})
+    .setTitle(`Hi, ${s.name || 'there'}. What are we nabbing?`)
+    .setDescription('Browse restaurants and stores, build your bag, then Nabit will generate your checkout screen.')
+    .addFields({name:'Popular near you',value:businesses.map(b=>`**${b.name}** • ${b.type}\\n${b.eta} • ${money(b.fee)} delivery`).join('\\n\\n')})
+    .setFooter({text:'Need it? Nabit.'});
 }
-
-function backHomeRow() {
+function homeButtons(){
+  return [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('browse').setLabel('Browse').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('bag').setLabel('Bag').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('orders').setLabel('Orders').setStyle(ButtonStyle.Secondary)
+  )];
+}
+function backHome(){
   return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('nabit_home')
-      .setLabel('Home')
-      .setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId('home').setLabel('Home').setStyle(ButtonStyle.Secondary)
   );
 }
-
-function browseEmbed() {
-  return new EmbedBuilder()
-    .setColor(COLORS.grape)
-    .setAuthor({ name: 'nabit' })
-    .setTitle('Browse restaurants')
-    .setDescription(
-      '**Nothing here yet — on purpose.**\n\n' +
-      'This screen is ready for your actual RP restaurants. ' +
-      'We’ll plug them in next instead of using fake placeholders.'
-    )
-    .setFooter({ text: 'nabit • Cravings covered.' });
-}
-
-function bagEmbed(userId) {
-  const cart = getCart(userId);
-
-  if (!cart.items.length) {
-    return new EmbedBuilder()
-      .setColor(COLORS.grape)
-      .setAuthor({ name: 'nabit' })
-      .setTitle('Your bag')
-      .setDescription('Your bag is empty.\n\nBrowse a restaurant to start an order.')
-      .setFooter({ text: 'nabit • Need it? Nabit.' });
-  }
-
-  const itemLines = cart.items.map(
-    item => `**${item.name}** × ${item.quantity} — ${money(item.price * item.quantity)}`
-  );
-
-  const subtotal = cart.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  return new EmbedBuilder()
-    .setColor(COLORS.grape)
-    .setAuthor({ name: 'nabit' })
-    .setTitle('Your bag')
-    .setDescription(itemLines.join('\n'))
-    .addFields(
-      { name: 'Subtotal', value: money(subtotal), inline: true },
-      { name: 'Deliver to', value: cart.deliveryLabel, inline: true }
-    )
-    .setFooter({ text: 'nabit • Review before checkout.' });
-}
-
-function checkoutEmbed(userId) {
-  const cart = getCart(userId);
-  const subtotal = cart.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const deliveryFee = 3.50;
-  const serviceFee = 2.60;
-  const total = subtotal + deliveryFee + serviceFee + cart.tip;
-
-  const items = cart.items.length
-    ? cart.items.map(item => `${item.name} × ${item.quantity} — ${money(item.price * item.quantity)}`).join('\n')
-    : 'No items in bag.';
-
-  return new EmbedBuilder()
-    .setColor(COLORS.yellow)
-    .setAuthor({ name: 'nabit • Checkout' })
-    .setDescription(
-      `📍 **Deliver to**\n${cart.deliveryLabel}\n${cart.deliveryAddress}\n\n` +
-      `**Order summary**\n${items}\n\n` +
-      `Subtotal — ${money(subtotal)}\n` +
-      `Delivery fee — ${money(deliveryFee)}\n` +
-      `Service fee — ${money(serviceFee)}\n` +
-      (cart.tip ? `Tip — ${money(cart.tip)}\n` : '') +
-      `\n**Total — ${money(total)} VUC**`
-    )
-    .addFields({
-      name: '💳 VUC Wallet',
-      value: 'Wallet balance integration comes with Equity Financial.',
-      inline: false
-    })
-    .setFooter({ text: 'nabit • Secure checkout' });
-}
-
-function checkoutButtons(userId) {
-  const cart = getCart(userId);
-  const subtotal = cart.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const total = subtotal + 3.50 + 2.60 + cart.tip;
-
-  return [
-    new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('nabit_pay')
-        .setLabel(`Pay ${money(total)} VUC`)
-        .setStyle(ButtonStyle.Success)
-        .setDisabled(cart.items.length === 0),
-      new ButtonBuilder()
-        .setCustomId('nabit_edit_bag')
-        .setLabel('Edit Order')
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId('nabit_cancel_checkout')
-        .setLabel('Cancel')
-        .setStyle(ButtonStyle.Secondary)
-    )
-  ];
-}
-
-function ordersEmbed(userId) {
-  const userOrders = [...orders.values()].filter(o => o.userId === userId);
-
-  if (!userOrders.length) {
-    return new EmbedBuilder()
-      .setColor(COLORS.grape)
-      .setAuthor({ name: 'nabit' })
-      .setTitle('Your orders')
-      .setDescription('No orders yet.\n\nYour active and past Nabit orders will live here.')
-      .setFooter({ text: 'nabit • Track it from here.' });
-  }
-
-  return new EmbedBuilder()
-    .setColor(COLORS.grape)
-    .setAuthor({ name: 'nabit' })
-    .setTitle('Your orders')
-    .setDescription(
-      userOrders.slice(-5).reverse().map(order =>
-        `**#${order.id}** • ${order.status}\n${money(order.total)} VUC`
-      ).join('\n\n')
-    );
-}
-
-function orderConfirmedEmbed(order) {
-  return new EmbedBuilder()
-    .setColor(COLORS.grape)
-    .setAuthor({ name: 'nabit' })
-    .setTitle('On the way! 🚀')
-    .setDescription(
-      `**Order #${order.id} confirmed**\n\n` +
-      `Arriving in **18 min**\n` +
-      `Your order is on its way to you.\n\n` +
-      `🛵 **Rider assignment pending**`
-    )
-    .addFields({
-      name: 'Order total',
-      value: `${money(order.total)} VUC`,
-      inline: true
-    })
-    .setFooter({ text: 'nabit • Need it? Nabit.' });
-}
-
-function trackingButtons(orderId) {
+function businessSelect(){
   return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`nabit_track_${orderId}`)
-      .setLabel('Track Order')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId(`nabit_details_${orderId}`)
-      .setLabel('View Details')
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId('nabit_home')
-      .setLabel('Home')
-      .setStyle(ButtonStyle.Secondary)
+    new StringSelectMenuBuilder().setCustomId('business_select').setPlaceholder('Choose a restaurant or store')
+      .addOptions(businesses.map(b=>({label:b.name,value:b.id,description:`${b.type} • ${b.eta}`})))
   );
 }
-
-async function registerCommands() {
-  console.log('Registering Nabit commands...');
-  await rest.put(
-    Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-    { body: commands }
+function categorySelect(b){
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder().setCustomId(`category:${b.id}`).setPlaceholder('Choose a category')
+      .addOptions(Object.keys(b.categories).map(c=>({label:c,value:c})))
   );
-  console.log('Commands registered!');
+}
+function itemSelect(b,cat){
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder().setCustomId(`item:${b.id}:${cat}`).setPlaceholder('Choose an item')
+      .addOptions(b.categories[cat].slice(0,25).map(i=>({label:i.name.slice(0,100),value:i.id,description:money(i.price)})))
+  );
+}
+function bagEmbed(uid){
+  const c=cartFor(uid);
+  if(!c.items.length) return new EmbedBuilder().setColor(GRAPE).setTitle('Your bag').setDescription('Your bag is empty.');
+  const subtotal=c.items.reduce((s,i)=>s+i.price*i.qty,0);
+  return new EmbedBuilder().setColor(GRAPE).setAuthor({name:'nabit • Bag'})
+    .setTitle(findBusiness(c.businessId)?.name || 'Your order')
+    .setDescription(c.items.map(i=>`**${i.name}** × ${i.qty} — ${money(i.price*i.qty)}`).join('\\n'))
+    .addFields({name:'Subtotal',value:money(subtotal),inline:true});
 }
 
-client.once('ready', () => {
-  console.log(`Nabit is online as ${client.user.tag}`);
-});
+client.once('ready',()=>console.log(`Nabit is online as ${client.user.tag}`));
 
-client.on('interactionCreate', async interaction => {
-  try {
-    if (interaction.isChatInputCommand()) {
-      if (interaction.commandName === 'nabit') {
-        await interaction.reply({
-          embeds: [homeEmbed()],
-          components: homeRows(),
-          ephemeral: true
-        });
-      }
+client.on('interactionCreate', async interaction=>{
+  try{
+    const uid=interaction.user.id;
+
+    if(interaction.isChatInputCommand() && interaction.commandName==='nabit'){
+      const modal=new ModalBuilder().setCustomId('name_modal').setTitle('Welcome to Nabit');
+      const input=new TextInputBuilder().setCustomId('order_name').setLabel('Name for this order')
+        .setPlaceholder('e.g. Dèja').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(40);
+      modal.addComponents(new ActionRowBuilder().addComponents(input));
+      await interaction.showModal(modal);
       return;
     }
 
-    if (interaction.isButton()) {
-      const userId = interaction.user.id;
-
-      if (interaction.customId === 'nabit_home') {
-        await interaction.update({
-          embeds: [homeEmbed()],
-          components: homeRows()
-        });
-        return;
-      }
-
-      if (interaction.customId === 'nabit_browse') {
-        await interaction.update({
-          embeds: [browseEmbed()],
-          components: [backHomeRow()]
-        });
-        return;
-      }
-
-      if (interaction.customId === 'nabit_search') {
-        const modal = new ModalBuilder()
-          .setCustomId('nabit_search_modal')
-          .setTitle('Search Nabit');
-
-        const input = new TextInputBuilder()
-          .setCustomId('query')
-          .setLabel('What are you craving?')
-          .setPlaceholder('Restaurant, cuisine, dish...')
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true);
-
-        modal.addComponents(new ActionRowBuilder().addComponents(input));
-        await interaction.showModal(modal);
-        return;
-      }
-
-      if (interaction.customId === 'nabit_favorites') {
-        const embed = new EmbedBuilder()
-          .setColor(COLORS.grape)
-          .setAuthor({ name: 'nabit' })
-          .setTitle('Favorites')
-          .setDescription('Your saved restaurants will appear here.')
-          .setFooter({ text: 'nabit • Your go-to spots.' });
-
-        await interaction.update({
-          embeds: [embed],
-          components: [backHomeRow()]
-        });
-        return;
-      }
-
-      if (interaction.customId === 'nabit_bag' || interaction.customId === 'nabit_edit_bag') {
-        const bag = bagEmbed(userId);
-        const cart = getCart(userId);
-
-        const components = [];
-        if (cart.items.length) {
-          components.push(
-            new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId('nabit_checkout')
-                .setLabel('Checkout')
-                .setStyle(ButtonStyle.Primary)
-            )
-          );
-        }
-        components.push(backHomeRow());
-
-        await interaction.update({
-          embeds: [bag],
-          components
-        });
-        return;
-      }
-
-      if (interaction.customId === 'nabit_checkout') {
-        await interaction.update({
-          embeds: [checkoutEmbed(userId)],
-          components: checkoutButtons(userId)
-        });
-        return;
-      }
-
-      if (interaction.customId === 'nabit_cancel_checkout') {
-        await interaction.update({
-          embeds: [bagEmbed(userId)],
-          components: [backHomeRow()]
-        });
-        return;
-      }
-
-      if (interaction.customId === 'nabit_pay') {
-        const cart = getCart(userId);
-
-        if (!cart.items.length) {
-          await interaction.reply({
-            content: 'Your bag is empty.',
-            ephemeral: true
-          });
-          return;
-        }
-
-        const subtotal = cart.items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0
-        );
-        const total = subtotal + 3.50 + 2.60 + cart.tip;
-        const id = Math.floor(100000 + Math.random() * 900000).toString();
-
-        const order = {
-          id,
-          userId,
-          items: [...cart.items],
-          total,
-          status: 'Confirmed'
-        };
-
-        orders.set(id, order);
-        carts.set(userId, {
-          restaurant: null,
-          items: [],
-          note: '',
-          deliveryLabel: 'Home',
-          deliveryAddress: 'Not set',
-          tip: 0
-        });
-
-        await interaction.update({
-          embeds: [orderConfirmedEmbed(order)],
-          components: [trackingButtons(id)]
-        });
-        return;
-      }
-
-      if (interaction.customId === 'nabit_orders') {
-        await interaction.update({
-          embeds: [ordersEmbed(userId)],
-          components: [backHomeRow()]
-        });
-        return;
-      }
-
-      if (interaction.customId.startsWith('nabit_track_')) {
-        const id = interaction.customId.replace('nabit_track_', '');
-        const order = orders.get(id);
-
-        const embed = new EmbedBuilder()
-          .setColor(COLORS.grape)
-          .setAuthor({ name: `nabit • Order #${id}` })
-          .setTitle('On the way! 🚀')
-          .setDescription(
-            '**Arriving in 18 min**\n' +
-            'Your order is on its way to you.\n\n' +
-            '🟡 Confirmed\n' +
-            '🟣 Preparing\n' +
-            '⚪ Picked up\n' +
-            '⚪ Nearby\n' +
-            '⚪ Delivered'
-          )
-          .setFooter({ text: 'nabit • Live rider map comes next.' });
-
-        await interaction.update({
-          embeds: [embed],
-          components: [trackingButtons(id)]
-        });
-        return;
-      }
-
-      if (interaction.customId.startsWith('nabit_details_')) {
-        const id = interaction.customId.replace('nabit_details_', '');
-        const order = orders.get(id);
-
-        const lines = order?.items?.length
-          ? order.items.map(i => `${i.name} × ${i.quantity} — ${money(i.price * i.quantity)}`).join('\n')
-          : 'Order details unavailable.';
-
-        const embed = new EmbedBuilder()
-          .setColor(COLORS.grape)
-          .setAuthor({ name: `nabit • Order #${id}` })
-          .setTitle('Order details')
-          .setDescription(`${lines}\n\n**Total — ${money(order?.total ?? 0)} VUC**`);
-
-        await interaction.update({
-          embeds: [embed],
-          components: [trackingButtons(id)]
-        });
-      }
+    if(interaction.isModalSubmit() && interaction.customId==='name_modal'){
+      const name=interaction.fields.getTextInputValue('order_name').trim();
+      sessionFor(uid).name=name;
+      carts.set(uid,{businessId:null,items:[]});
+      await interaction.reply({embeds:[homeEmbed(uid)],components:homeButtons(),ephemeral:true});
       return;
     }
 
-    if (interaction.isModalSubmit()) {
-      if (interaction.customId === 'nabit_search_modal') {
-        const query = interaction.fields.getTextInputValue('query');
-
-        const embed = new EmbedBuilder()
-          .setColor(COLORS.grape)
-          .setAuthor({ name: 'nabit • Search' })
-          .setTitle(`Results for “${query}”`)
-          .setDescription(
-            'No restaurants are configured yet.\n\n' +
-            'Once we add your RP restaurants and menus, matching results will show here.'
-          );
-
-        await interaction.reply({
-          embeds: [embed],
-          components: [backHomeRow()],
-          ephemeral: true
+    if(interaction.isButton()){
+      if(interaction.customId==='home'){
+        await interaction.update({embeds:[homeEmbed(uid)],components:homeButtons(),attachments:[]}); return;
+      }
+      if(interaction.customId==='browse'){
+        await interaction.update({
+          embeds:[new EmbedBuilder().setColor(GRAPE).setTitle('Browse Nabit').setDescription(
+            businesses.map(b=>`**${b.name}**\\n${b.description}\\n${b.eta} • ${money(b.fee)} delivery`).join('\\n\\n')
+          )],
+          components:[businessSelect(),backHome()],attachments:[]
+        }); return;
+      }
+      if(interaction.customId==='bag' || interaction.customId==='edit_order'){
+        const c=cartFor(uid);
+        const rows=[];
+        if(c.items.length){
+          rows.push(new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('generate_checkout').setLabel('Generate Checkout').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('clear').setLabel('Clear Bag').setStyle(ButtonStyle.Secondary)
+          ));
+        }
+        rows.push(backHome());
+        await interaction.update({embeds:[bagEmbed(uid)],components:rows,attachments:[]}); return;
+      }
+      if(interaction.customId==='clear'){
+        carts.set(uid,{businessId:null,items:[]});
+        await interaction.update({embeds:[bagEmbed(uid)],components:[backHome()],attachments:[]}); return;
+      }
+      if(interaction.customId==='generate_checkout'){
+        const c=cartFor(uid);
+        if(!c.items.length){ await interaction.reply({content:'Your bag is empty.',ephemeral:true}); return; }
+        const b=findBusiness(c.businessId), s=sessionFor(uid);
+        await interaction.deferUpdate();
+        const png=await renderCheckout({
+          customerName:s.name || interaction.user.displayName,
+          business:b,
+          items:c.items,
+          deliveryLabel:s.deliveryLabel,
+          deliveryAddress:s.deliveryAddress
         });
+        const attachment=new AttachmentBuilder(png,{name:'nabit-checkout.png'});
+        await interaction.editReply({
+          content:'**Review your Nabit checkout.**',
+          embeds:[],
+          files:[attachment],
+          attachments:[],
+          components:[new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('place_order').setLabel('Place Order').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('edit_order').setLabel('Edit Order').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('cancel_order').setLabel('Cancel').setStyle(ButtonStyle.Secondary)
+          )]
+        });
+        return;
+      }
+      if(interaction.customId==='cancel_order'){
+        carts.set(uid,{businessId:null,items:[]});
+        await interaction.update({content:'Order canceled.',embeds:[],components:[backHome()],attachments:[]}); return;
+      }
+      if(interaction.customId==='place_order'){
+        const c=cartFor(uid), b=findBusiness(c.businessId);
+        const subtotal=c.items.reduce((s,i)=>s+i.price*i.qty,0);
+        const service=Math.max(1.50,subtotal*0.08);
+        const total=subtotal+(b?.fee||0)+service;
+        const id=Math.floor(100000+Math.random()*900000).toString();
+        orders.set(id,{id,userId:uid,businessId:c.businessId,items:[...c.items],total,status:'Confirmed',name:sessionFor(uid).name});
+        carts.set(uid,{businessId:null,items:[]});
+        await interaction.update({
+          content:'',
+          embeds:[new EmbedBuilder().setColor(GRAPE).setAuthor({name:'nabit'}).setTitle('Order confirmed')
+            .setDescription(`**Order #${id}**\\n${sessionFor(uid).name}, your order was sent to **${b?.name}**.\\n\\n**Total: ${money(total)} VUC**`)
+            .setFooter({text:'Need it? Nabit.'})],
+          components:[backHome()],
+          attachments:[]
+        }); return;
+      }
+      if(interaction.customId==='orders'){
+        const mine=[...orders.values()].filter(o=>o.userId===uid);
+        await interaction.update({
+          embeds:[new EmbedBuilder().setColor(GRAPE).setTitle('Your orders').setDescription(
+            mine.length ? mine.slice(-8).reverse().map(o=>`**#${o.id}** • ${findBusiness(o.businessId)?.name}\\n${o.status} • ${money(o.total)}`).join('\\n\\n') : 'No orders yet.'
+          )],
+          components:[backHome()],attachments:[]
+        }); return;
       }
     }
-  } catch (error) {
-    console.error('Nabit interaction error:', error);
 
-    if (interaction.isRepliable()) {
-      const payload = {
-        content: 'Nabit hit a snag. Try that again in a second.',
-        ephemeral: true
-      };
-
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(payload).catch(() => {});
-      } else {
-        await interaction.reply(payload).catch(() => {});
+    if(interaction.isStringSelectMenu()){
+      if(interaction.customId==='business_select'){
+        const b=findBusiness(interaction.values[0]);
+        await interaction.update({
+          embeds:[new EmbedBuilder().setColor(GRAPE).setAuthor({name:'nabit'}).setTitle(b.name)
+            .setDescription(`${b.description}\\n\\n**${b.eta}** • ${money(b.fee)} delivery`)
+            .addFields(Object.entries(b.categories).map(([cat,items])=>({name:cat,value:items.slice(0,8).map(i=>`${i.name} — **${money(i.price)}**`).join('\\n')})))],
+          components:[categorySelect(b),backHome()],attachments:[]
+        }); return;
       }
+      if(interaction.customId.startsWith('category:')){
+        const bid=interaction.customId.split(':')[1], b=findBusiness(bid), cat=interaction.values[0];
+        await interaction.update({
+          embeds:[new EmbedBuilder().setColor(GRAPE).setAuthor({name:`nabit • ${b.name}`}).setTitle(cat)
+            .setDescription(b.categories[cat].map(i=>`**${i.name}** — ${money(i.price)}`).join('\\n\\n'))],
+          components:[itemSelect(b,cat),categorySelect(b),backHome()],attachments:[]
+        }); return;
+      }
+      if(interaction.customId.startsWith('item:')){
+        const [,bid,cat]=interaction.customId.split(':');
+        const b=findBusiness(bid), item=findItem(b,interaction.values[0]);
+        let c=cartFor(uid);
+        if(c.businessId && c.businessId!==bid){ carts.set(uid,{businessId:bid,items:[]}); c=cartFor(uid); }
+        c.businessId=bid;
+        const existing=c.items.find(i=>i.id===item.id);
+        if(existing) existing.qty+=1; else c.items.push({...item,qty:1});
+        await interaction.update({
+          embeds:[new EmbedBuilder().setColor(GRAPE).setTitle(`${item.name} added`).setDescription(`${money(item.price)}\\n\\nYour bag has ${c.items.reduce((s,i)=>s+i.qty,0)} item(s).`)],
+          components:[new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('bag').setLabel('View Bag').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('browse').setLabel('Keep Browsing').setStyle(ButtonStyle.Secondary)
+          )],
+          attachments:[]
+        }); return;
+      }
+    }
+  }catch(err){
+    console.error('Nabit interaction error:',err);
+    if(interaction.isRepliable()){
+      const p={content:'Nabit hit a snag. Try that again in a second.',ephemeral:true};
+      if(interaction.replied||interaction.deferred) await interaction.followUp(p).catch(()=>{});
+      else await interaction.reply(p).catch(()=>{});
     }
   }
 });
 
-await registerCommands();
+await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID,process.env.GUILD_ID),{body:commands});
+console.log('Commands registered!');
 client.login(process.env.DISCORD_TOKEN);
