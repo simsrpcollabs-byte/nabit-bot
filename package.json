@@ -1,7 +1,7 @@
 {
   "name": "nabit-bot",
-  "version": "5.0.0",
-  "description": "Complete Nabit Discord ordering bot with dynamic branded checkout/order images",
+  "version": "6.0.0",
+  "description": "Nabit Discord ordering bot with private shopping and public receipt-style order posts",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "discord.js": "^14.19.3",
-    "dotenv": "^16.5.0",
-    "sharp": "^0.34.3"
+    "dotenv": "^16.5.0"
   }
 }

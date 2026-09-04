@@ -1,25 +1,29 @@
-# Nabit Complete v5
+# Nabit v6 — Public Receipt Edition
 
-This is the full drop-in update.
+This is the complete update that removes generated PNGs.
 
-## Full user flow
+## New flow
 
 `/nabit`
-→ enter **name + delivery location**
-→ Nabit home
-→ browse one of the 5 launch businesses
-→ choose category
-→ add items
-→ view bag
-→ remove items / add more / clear bag
-→ optional restaurant note
-→ **Generate Checkout**
-→ bot renders the actual branded Nabit checkout PNG
-→ **Place Order**
-→ bot renders a second branded **Order Confirmed** PNG
-→ order appears in **Your Orders**
+→ enter name + delivery location
+→ browse privately
+→ add items privately
+→ review bag privately
+→ confirm order
+→ Nabit posts a **public receipt-style text block in the channel**
 
-## Launch businesses included
+The final receipt looks like a real printed receipt, similar to the Discord example you provided.
+
+## Important behavior
+
+- Shopping/browsing remains **ephemeral/private**
+- The **final receipt is public**
+- No `sharp`
+- No PNG generation
+- No image rendering
+- Faster/lighter Railway builds
+
+## Included businesses
 
 1. Crunch
 2. The Swan's Nest
@@ -27,25 +31,27 @@ This is the full drop-in update.
 4. Gabrie's Dominican Soul
 5. Aguilar Convenience
 
-## Files
+## Upload
 
-Upload all of these FLAT into the root of the GitHub repo and replace older versions:
+Upload these files FLAT to the root of your GitHub repo:
 
 - `index.js`
 - `data.js`
-- `renderer.js`
 - `package.json`
 - `.env.example`
 - `README.md`
 
-Keep your Railway variables:
+Delete the old `renderer.js` from GitHub because v6 does not use it.
+
+Keep your existing Railway variables:
 - `DISCORD_TOKEN`
 - `CLIENT_ID`
 - `GUILD_ID`
 
-## Important
+## Discord permission needed
 
-- The generated images are deterministic SVG/PNG renders using Sharp. No AI generation happens in the Discord bot.
-- Cart/order/session data is still in memory for now, so Railway restarts clear it.
-- The next major update should move sessions/orders/menus into Supabase for persistence.
-- Aguilar Convenience currently uses starter convenience-store prices, editable in `data.js`.
+Nabit must have **Send Messages** permission in any channel where you want public receipts posted.
+
+## Current persistence
+
+Sessions, carts, and orders are still stored in memory and reset when Railway restarts. Supabase can be added next for permanent order history.
