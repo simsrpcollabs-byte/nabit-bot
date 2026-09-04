@@ -30,3 +30,15 @@ export function safeJson(text, fallback = null) {
   }
   return fallback;
 }
+
+export function ageMonthsFromSelection(stage, ageValue) {
+  const value = String(ageValue || "").trim().toLowerCase();
+  const monthMatch = value.match(/^(\d{1,2})\s+months?$/);
+  const yearMatch = value.match(/^(\d{1,2})\s+years?$/);
+  let months;
+  if (monthMatch) months = Number(monthMatch[1]);
+  else if (yearMatch) months = Number(yearMatch[1]) * 12;
+  else throw new Error("Choose an age from the KIDDO age list.");
+  if (stageForMonths(months) !== stage) throw new Error(`That age does not belong to the ${stage} age group.`);
+  return months;
+}

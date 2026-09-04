@@ -4,8 +4,7 @@ import { KiddoDatabase } from "./database.js";
 import { BehaviorEngine } from "./behavior.js";
 import { kiddoCommand, handleKiddo } from "./commands.js";
 import { worldCommand, handleWorld } from "./worldCommands.js";
-import { TEMPERAMENTS } from "./constants.js";
-import { stageForMonths } from "./utils.js";
+import { AGE_GROUPS, TEMPERAMENTS } from "./constants.js";
 
 const token = process.env.DISCORD_TOKEN;
 if (!token) throw new Error("DISCORD_TOKEN is missing. Add it in Railway Variables.");
@@ -36,13 +35,24 @@ client.on("interactionCreate", async interaction => {
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused(true);
 
+      if (focused.name === "age") {
+        const stage = interaction.options.getString("age_group");
+        if (!stage || !AGE_GROUPS[stage]) {
+          return interaction.respond([{ name: "Choose age_group first", value: "Choose age_group first" }]);
+        }
+        const query = String(focused.value || "").toLowerCase();
+        return interaction.respond(AGE_GROUPS[stage]
+          .filter(age => age.toLowerCase().includes(query))
+          .slice(0, 25)
+          .map(age => ({ name: age, value: age })));
+      }
+
       if (["primary_temperament", "secondary_temperament"].includes(focused.name)) {
-        const ageMonths = interaction.options.getInteger("age_months");
-        if (ageMonths === null) {
-          return interaction.respond([{ name: "Enter age_months first", value: "Enter age_months first" }]);
+        const stage = interaction.options.getString("age_group");
+        if (!stage || !TEMPERAMENTS[stage]) {
+          return interaction.respond([{ name: "Choose age_group first", value: "Choose age_group first" }]);
         }
 
-        const stage = stageForMonths(ageMonths);
         const primary = interaction.options.getString("primary_temperament");
         const query = String(focused.value || "").toLowerCase();
         const options = (TEMPERAMENTS[stage] || [])

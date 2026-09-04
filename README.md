@@ -133,4 +133,19 @@ The bot's visible Discord name/avatar come from the Discord application attached
 The default is `gpt-5.6-luna`, a cost-sensitive GPT-5.6 model suitable for higher-volume narrative generation. You can change `OPENAI_MODEL` in Railway Variables.
 
 ### Age-based temperament picker
-During `/kiddo register`, enter `age_months` first. The `primary_temperament` and `secondary_temperament` fields then show selectable Discord autocomplete options for that child's developmental stage. You do not need to type temperament labels manually.
+During `/kiddo register`, enter `age_group + age` first. The `primary_temperament` and `secondary_temperament` fields then show selectable Discord autocomplete options for that child's developmental stage. You do not need to type temperament labels manually.
+
+## Registration age flow
+
+`/kiddo register` now asks for **Age Group first**, then gives an age list for that group.
+
+- Infant: 0-11 months
+- Young Toddler: 12-23 months
+- Toddler: 2-3 years
+- Preschool: 4-5 years
+- Early Childhood: 6-8 years
+- Middle Childhood: 9-11 years
+- Early Adolescence: 12-14 years
+- Older Teen: 15-17 years
+
+The temperament autocomplete uses the selected age group, so users never need to calculate older children's ages in months.

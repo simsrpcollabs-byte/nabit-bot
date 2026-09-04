@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { stageForMonths, ageLabel } from "./utils.js";
+import { stageForMonths, ageLabel, ageMonthsFromSelection } from "./utils.js";
 assert.equal(stageForMonths(0), "Infant");
 assert.equal(stageForMonths(11), "Infant");
 assert.equal(stageForMonths(12), "Young Toddler");
@@ -7,4 +7,8 @@ assert.equal(stageForMonths(24), "Toddler");
 assert.equal(stageForMonths(180), "Older Teen");
 assert.equal(ageLabel(8), "8 months");
 assert.equal(ageLabel(36), "3 years");
+assert.equal(ageMonthsFromSelection("Infant", "6 months"), 6);
+assert.equal(ageMonthsFromSelection("Young Toddler", "18 months"), 18);
+assert.equal(ageMonthsFromSelection("Toddler", "3 years"), 36);
+assert.equal(ageMonthsFromSelection("Older Teen", "17 years"), 204);
 console.log("KIDDO JS tests passed.");

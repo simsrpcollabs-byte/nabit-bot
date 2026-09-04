@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
-import { TEMPERAMENTS, MOODS, DESTINATIONS, SUMMARY_STYLES } from "./constants.js";
-import { stageForMonths } from "./utils.js";
+import { AGE_GROUPS, TEMPERAMENTS, MOODS, DESTINATIONS, SUMMARY_STYLES } from "./constants.js";
+import { ageMonthsFromSelection } from "./utils.js";
 import { behaviorEmbed, profileEmbed } from "./ui.js";
 import { storeAvatar, resolveAvatarUrl, sendAsChild } from "./proxy.js";
 
@@ -9,7 +9,8 @@ const kiddo = new SlashCommandBuilder()
   .setDescription("Child and teen behavior simulator")
   .addSubcommand(s => s.setName("register").setDescription("Register a child or teen")
     .addStringOption(o => o.setName("name").setDescription("Character name").setRequired(true))
-    .addIntegerOption(o => o.setName("age_months").setDescription("Age in months, birth through 17").setMinValue(0).setMaxValue(215).setRequired(true))
+    .addStringOption(o => o.setName("age_group").setDescription("Choose the child's developmental age group").setRequired(true).addChoices(...Object.keys(AGE_GROUPS).map(x => ({ name: x, value: x }))))
+    .addStringOption(o => o.setName("age").setDescription("Choose the child's age").setAutocomplete(true).setRequired(true))
     .addStringOption(o => o.setName("primary_temperament").setDescription("Choose an age-appropriate temperament").setAutocomplete(true).setRequired(true))
     .addStringOption(o => o.setName("traits").setDescription("1-5 comma-separated traits").setRequired(true))
     .addStringOption(o => o.setName("secondary_temperament").setDescription("Optional second age-appropriate temperament").setAutocomplete(true))
@@ -60,8 +61,10 @@ export async function handleKiddo(interaction, db, behavior) {
   const sub = interaction.options.getSubcommand();
   if (sub === "register") {
     const name = interaction.options.getString("name", true);
-    const ageMonths = interaction.options.getInteger("age_months", true);
-    const stage = stageForMonths(ageMonths);
+    const stage = interaction.options.getString("age_group", true);
+    const ageValue = interaction.options.getString("age", true);
+    if (!AGE_GROUPS[stage]?.includes(ageValue)) return interaction.reply({ content: `Choose an age from the **${stage}** age list.`, ephemeral: true });
+    const ageMonths = ageMonthsFromSelection(stage, ageValue);
     const primary = interaction.options.getString("primary_temperament", true);
     const secondary = interaction.options.getString("secondary_temperament");
     const allowed = TEMPERAMENTS[stage];

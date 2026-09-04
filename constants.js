@@ -1,3 +1,14 @@
+export const AGE_GROUPS = {
+  "Infant": ["0 months", "1 month", "2 months", "3 months", "4 months", "5 months", "6 months", "7 months", "8 months", "9 months", "10 months", "11 months"],
+  "Young Toddler": ["12 months", "13 months", "14 months", "15 months", "16 months", "17 months", "18 months", "19 months", "20 months", "21 months", "22 months", "23 months"],
+  "Toddler": ["2 years", "3 years"],
+  "Preschool": ["4 years", "5 years"],
+  "Early Childhood": ["6 years", "7 years", "8 years"],
+  "Middle Childhood": ["9 years", "10 years", "11 years"],
+  "Early Adolescence": ["12 years", "13 years", "14 years"],
+  "Older Teen": ["15 years", "16 years", "17 years"]
+};
+
 export const TEMPERAMENTS = {
   "Infant": ["Easy Baby", "Sensitive Baby", "High-Needs Baby", "Curious Baby", "Social Baby", "Cautious Baby", "Independent Baby", "Unpredictable Baby"],
   "Young Toddler": ["Easygoing", "Busy Explorer", "Clingy/Sensitive", "Fearless", "Slow-to-Warm", "Strong-Willed", "Social Butterfly", "Quiet Observer"],
