@@ -81,29 +81,24 @@ function homeRows() {
       new ButtonBuilder()
         .setCustomId('nabit_browse')
         .setLabel('Browse Restaurants')
-        .setEmoji('🍽️')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId('nabit_search')
         .setLabel('Search')
-        .setEmoji('🔎')
         .setStyle(ButtonStyle.Secondary)
     ),
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('nabit_orders')
         .setLabel('Orders')
-        .setEmoji('🧾')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId('nabit_favorites')
         .setLabel('Favorites')
-        .setEmoji('♡')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId('nabit_bag')
         .setLabel('Bag')
-        .setEmoji('🛍️')
         .setStyle(ButtonStyle.Secondary)
     )
   ];
@@ -114,7 +109,6 @@ function backHomeRow() {
     new ButtonBuilder()
       .setCustomId('nabit_home')
       .setLabel('Home')
-      .setEmoji('🏠')
       .setStyle(ButtonStyle.Secondary)
   );
 }
@@ -212,7 +206,6 @@ function checkoutButtons(userId) {
       new ButtonBuilder()
         .setCustomId('nabit_pay')
         .setLabel(`Pay ${money(total)} VUC`)
-        .setEmoji('🔒')
         .setStyle(ButtonStyle.Success)
         .setDisabled(cart.items.length === 0),
       new ButtonBuilder()
@@ -274,7 +267,6 @@ function trackingButtons(orderId) {
     new ButtonBuilder()
       .setCustomId(`nabit_track_${orderId}`)
       .setLabel('Track Order')
-      .setEmoji('📍')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId(`nabit_details_${orderId}`)
@@ -375,7 +367,6 @@ client.on('interactionCreate', async interaction => {
               new ButtonBuilder()
                 .setCustomId('nabit_checkout')
                 .setLabel('Checkout')
-                .setEmoji('→')
                 .setStyle(ButtonStyle.Primary)
             )
           );
