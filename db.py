@@ -12,6 +12,17 @@ class Database:
         schema = Path(__file__).with_name("schema.sql").read_text(encoding="utf-8")
         async with aiosqlite.connect(self.path) as db:
             await db.executescript(schema)
+            # Lightweight migrations for existing Railway/SQLite databases.
+            cur = await db.execute("PRAGMA table_info(children)")
+            cols = {row[1] for row in await cur.fetchall()}
+            migrations = {
+                'avatar_url': 'ALTER TABLE children ADD COLUMN avatar_url TEXT',
+                'avatar_channel_id': 'ALTER TABLE children ADD COLUMN avatar_channel_id INTEGER',
+                'avatar_message_id': 'ALTER TABLE children ADD COLUMN avatar_message_id INTEGER',
+            }
+            for col, sql in migrations.items():
+                if col not in cols:
+                    await db.execute(sql)
             await db.commit()
 
     async def execute(self, sql: str, params=()):

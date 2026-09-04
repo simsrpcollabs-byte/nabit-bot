@@ -9,6 +9,8 @@ It uses a deterministic SQLite profile/world model for canon and an OpenAI model
 ### Child behavior
 - `/kiddo register`
 - `/kiddo profile`
+- `/kiddo avatar` — upload/replace the child's avatar
+- `/kiddo act` — AI decides the child's in-character response and proxies it
 - `/kiddo edit`
 - `/kiddo ageup`
 - `/kiddo mood`
@@ -65,7 +67,7 @@ Fill `.env` with:
 DISCORD_TOKEN=...
 OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-5.6-luna
-DATABASE_PATH=./data/kiddo.sqlite
+DATABASE_PATH=./kiddo.sqlite
 DEV_GUILD_ID=YOUR_TEST_SERVER_ID
 ```
 
@@ -148,3 +150,48 @@ The schema includes:
 ## Recommended next UI upgrades
 
 The backend supports the important world data already. The next polish pass would replace some text parameters with Discord buttons/select menus/modals, especially registration, temperament selection, history confirmation and school setup.
+
+## Child avatars + RP proxying
+
+KIDDO can post directly in RP channels as each registered child using Discord webhooks.
+
+### Upload an avatar
+
+```text
+/kiddo avatar
+name: Preston
+image: [upload PNG/JPG/WEBP/GIF]
+```
+
+On the first avatar upload, KIDDO creates a private `#kiddo-assets` channel to keep avatar attachments persistent. The channel is hidden from `@everyone` by default.
+
+### Let KIDDO act as the child autonomously
+
+Use `/kiddo act` when you want KIDDO to determine the child's response. You provide only what happened around the child; KIDDO writes the child's actions, vocalizations, and dialogue itself:
+
+```text
+/kiddo act
+name: Preston
+situation: Wren puts him down in the playpen and walks toward the kitchen.
+direction: React naturally. He skipped his afternoon nap.
+```
+
+KIDDO uses the child's age, developmental stage, temperament, traits, current mood, relationships, preferences, recent history, and other registered world data. It then posts the result directly as that child.
+
+Proxy RP formatting follows the same convention throughout KIDDO:
+
+- `*italics*` = actions, nonverbal behavior, or internal reaction
+- `**bold**` = audible dialogue/vocalization
+
+Generated proxy behavior is still only an **observation**. It does not silently become permanent canon.
+
+### Discord permissions for proxy features
+
+In addition to normal message permissions, KIDDO needs:
+
+- **Manage Webhooks** — required to post under each child's name/avatar.
+- **Manage Channels** — used to create the private `#kiddo-assets` storage channel the first time an avatar is uploaded.
+- **Attach Files**
+- **Read Message History**
+
+KIDDO does not need Administrator permission.

@@ -6,6 +6,7 @@ from datetime import date
 from constants import TEMPERAMENTS, TRAITS, MOODS, DESTINATIONS, SUMMARY_STYLES
 from utils import stage_for_months
 from ui import profile_embed, behavior_embed
+from proxy import store_avatar, resolve_avatar_url, send_as_child
 
 class KiddoCog(commands.GroupCog, group_name="kiddo", group_description="Simulate child and teen behavior"):
     def __init__(self, bot):
@@ -54,7 +55,37 @@ class KiddoCog(commands.GroupCog, group_name="kiddo", group_description="Simulat
     async def profile(self, interaction: discord.Interaction, name: str):
         await interaction.response.defer()
         child = await self._get(interaction, name)
-        if child: await interaction.followup.send(embed=profile_embed(child))
+        if child:
+            avatar_url = await resolve_avatar_url(self.bot, interaction.guild, child) if interaction.guild else None
+            await interaction.followup.send(embed=profile_embed(child, avatar_url))
+
+    @app_commands.command(name="avatar", description="Upload or replace a registered child's proxy avatar")
+    @app_commands.autocomplete(name=child_autocomplete)
+    async def avatar(self, interaction: discord.Interaction, name: str, image: discord.Attachment):
+        await interaction.response.defer(ephemeral=True)
+        child = await self._get(interaction, name)
+        if not child:
+            return
+        try:
+            avatar_url = await store_avatar(self.bot, interaction, child, image)
+        except (ValueError, PermissionError, RuntimeError) as exc:
+            return await interaction.followup.send(str(exc), ephemeral=True)
+        await interaction.followup.send(f"🖼️ Avatar saved for **{child['name']}**. KIDDO will use it on proxy messages.", ephemeral=True)
+
+    @app_commands.command(name="act", description="Let KIDDO decide and post the child's in-character reaction")
+    @app_commands.autocomplete(name=child_autocomplete)
+    async def act(self, interaction: discord.Interaction, name: str, situation: str, direction: str|None=None):
+        await interaction.response.defer(ephemeral=True)
+        child = await self._get(interaction, name)
+        if not child:
+            return
+        result = await self.bot.behavior.generate_proxy(child, situation, direction or "Respond naturally as this child.")
+        await self._save_observations(child, result, "proxy:act")
+        try:
+            await send_as_child(self.bot, interaction, child, result.get("content") or "*...*")
+        except (PermissionError, RuntimeError, discord.HTTPException) as exc:
+            return await interaction.followup.send(f"Proxy failed: {exc}", ephemeral=True)
+        await interaction.followup.send(f"**{child['name']}** responded in character.", ephemeral=True)
 
     @app_commands.command(name="mood", description="Set a temporary current mood/state")
     @app_commands.autocomplete(name=child_autocomplete)
@@ -90,7 +121,7 @@ class KiddoCog(commands.GroupCog, group_name="kiddo", group_description="Simulat
 
     @app_commands.command(name="send", description="Simulate time at school, daycare, grandparents, a sitter, etc.")
     @app_commands.autocomplete(name=child_autocomplete)
-    async def send(self, interaction: discord.Interaction, name: str, destination: str, hours: app_commands.Range[float,0.5,48], detail: str="Standard", starting_context: str|None=None):
+    async def send(self, interaction: discord.Interaction, name: str, destination: str, hours: app_commands.Range[float,0.5,48.0], detail: str="Standard", starting_context: str|None=None):
         await interaction.response.defer()
         child = await self._get(interaction, name)
         if not child: return

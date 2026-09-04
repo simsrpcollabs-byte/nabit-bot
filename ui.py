@@ -14,7 +14,7 @@ def behavior_embed(result: dict) -> discord.Embed:
     embed.set_footer(text="KIDDO • Generated behavior is not permanent canon unless you confirm it.")
     return embed
 
-def profile_embed(child: dict) -> discord.Embed:
+def profile_embed(child: dict, avatar_url: str | None = None) -> discord.Embed:
     from utils import age_label
     e = discord.Embed(title=f"🧸 {child['name']}", description=child.get("notes") or "No custom behavior notes yet.", color=BRAND)
     temps = child["primary_temperament"] + (f" + {child['secondary_temperament']}" if child.get("secondary_temperament") else "")
@@ -22,6 +22,8 @@ def profile_embed(child: dict) -> discord.Embed:
     e.add_field(name="Temperament", value=temps)
     e.add_field(name="Mood", value=child.get("current_mood", "Normal"))
     e.add_field(name="Traits", value=", ".join(child.get("traits", [])) or "None set", inline=False)
+    if avatar_url or child.get('avatar_url'):
+        e.set_thumbnail(url=avatar_url or child.get('avatar_url'))
     if child.get("school"):
         s = child["school"]
         e.add_field(name="School", value=f"{s['school_name']} • {s.get('classroom_name') or s.get('grade') or ''}", inline=False)

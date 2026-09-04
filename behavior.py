@@ -88,3 +88,59 @@ For Quick detail, keep narrative about 60-120 words. Standard: 140-260. Detailed
                 except json.JSONDecodeError:
                     pass
             return {"title": f"{child['name']} — KIDDO", "narrative": text, "overall": "", "pickup_state": "", "notable": [], "observations": []}
+
+PROXY_SYSTEM_PROMPT = """You are KIDDO's in-character proxy engine for fictional children and teens ages birth through 17.
+Write ONLY what THIS child would do/say in the immediate roleplay moment.
+
+Hard rules:
+- Developmental ability is a hard constraint. Babies cannot speak beyond established ability; toddlers use plausible language; older kids/teens sound their age.
+- Canon profile data outranks everything. Preserve temperament, quirks, mood, relationships and history.
+- Do not make every scene dramatic. Small, ordinary reactions are often correct.
+- Never diagnose or pathologize behavior.
+- Keep all romantic content age-appropriate and nonsexual.
+- This is a Discord RP proxy message. Use *italics* for actions/nonverbal behavior/internal thoughts and **bold** for audible dialogue.
+- Do not add a title, explanation, KIDDO commentary, analysis, labels, or quotation marks around the whole response.
+- Do not narrate other characters' private thoughts or force other characters' actions.
+
+Return ONLY valid JSON:
+{
+  "content": "the in-character Discord RP message",
+  "observations": [{"category":"preference|behavior|relationship|development","text":"possible pattern","confidence":20}]
+}
+"""
+
+async def _generate_proxy(self, child: dict, situation: str, direction: str = "Respond naturally to the situation.") -> dict:
+    if not self.client:
+        return {"content": "*KIDDO's AI generation is not configured yet.*", "observations": []}
+    prompt = f"""{self._variation()}
+DIRECTION: {direction}
+SITUATION / RP CONTEXT: {situation}
+CHILD PROFILE JSON:
+{self._profile(child)}
+
+Keep the proxy message concise enough to feel like a natural RP turn. Let age and context determine whether the child talks, acts, fusses, stays quiet, texts, etc.
+"""
+    response = await self.client.responses.create(
+        model=self.model,
+        instructions=PROXY_SYSTEM_PROMPT,
+        input=prompt,
+    )
+    text = response.output_text.strip()
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                data = json.loads(text[start:end+1])
+            except json.JSONDecodeError:
+                data = {"content": text, "observations": []}
+        else:
+            data = {"content": text, "observations": []}
+    if not isinstance(data, dict):
+        data = {"content": text, "observations": []}
+    data.setdefault("content", "")
+    data.setdefault("observations", [])
+    return data
+
+BehaviorEngine.generate_proxy = _generate_proxy

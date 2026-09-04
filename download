@@ -2,5 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
-data/*.sqlite
-data/*.sqlite-*
+*.sqlite
+*.sqlite-*
+.pytest_cache/
+.DS_Store
