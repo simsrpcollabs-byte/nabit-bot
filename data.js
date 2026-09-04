@@ -1,6 +1,10 @@
 export const businesses = [
   {
-    id:'crunch', name:'Crunch', type:'Fast Food', eta:'20–30 min', fee:2.99,
+    id:'crunch',
+    name:'Crunch',
+    type:'Fast Food',
+    eta:'20–30 min',
+    fee:2.99,
     description:'Burgers, chicken, loaded fries, shakes & more.',
     categories:{
       Burgers:[
@@ -16,7 +20,7 @@ export const businesses = [
         {id:'crunch_tenders',name:'Crunch Tenders',price:6.99},
         {id:'crunch_bites',name:'Crunch Bites',price:4.49}
       ],
-      Sides:[
+      "Fries & Sides":[
         {id:'crunch_fries',name:'Crunch Fries',price:3.29},
         {id:'loaded_crunch_fries',name:'Loaded Crunch Fries',price:5.99},
         {id:'crunch_rings',name:'Crunch Rings',price:3.99},
@@ -37,11 +41,28 @@ export const businesses = [
         {id:'georgia_crown_peach',name:'Georgia Crown Peach',price:2.69},
         {id:'crown_sparkling',name:'Crown Sparkling Water',price:2.69},
         {id:'voltage',name:'Voltage Sports Drink',price:2.69}
+      ],
+      Specialty:[
+        {id:'cookie_crunch_shake',name:'Cookie Crunch Shake',price:4.99},
+        {id:'strawberry_shortstack',name:'Strawberry Shortstack Shake',price:4.99},
+        {id:'midnight_oreo',name:'Midnight Oreo Shake',price:4.99},
+        {id:'churro_cream',name:'Churro Cream Shake',price:4.99},
+        {id:'orange_voltage',name:'Crunch Fizz — Orange Voltage',price:2.69},
+        {id:'cherry_static',name:'Crunch Fizz — Cherry Static',price:2.69},
+        {id:'blue_rush',name:'Crunch Fizz — Blue Rush',price:2.69},
+        {id:'citrus_shock',name:'Crunch Fizz — Citrus Shock',price:2.69},
+        {id:'strawberry_blast',name:'Frozen Slush — Strawberry Blast',price:2.99},
+        {id:'mango_madness',name:'Frozen Slush — Mango Madness',price:2.99},
+        {id:'blue_raspberry',name:'Frozen Slush — Blue Raspberry',price:2.99}
       ]
     }
   },
   {
-    id:'swans_nest', name:"The Swan's Nest", type:'Caribbean • Latin', eta:'30–40 min', fee:3.49,
+    id:'swans_nest',
+    name:"The Swan's Nest",
+    type:'Caribbean • Latin',
+    eta:'30–40 min',
+    fee:3.49,
     description:'Caribbean and Latin comfort food.',
     categories:{
       Appetizers:[
@@ -73,7 +94,11 @@ export const businesses = [
     }
   },
   {
-    id:'nessas', name:"Nessa's Confections", type:'Bakery • Brunch', eta:'15–25 min', fee:2.49,
+    id:'nessas',
+    name:"Nessa's Confections",
+    type:'Bakery • Brunch',
+    eta:'15–25 min',
+    fee:2.49,
     description:'Brunch favorites, signature cupcakes & desserts.',
     categories:{
       Breakfast:[
@@ -103,7 +128,11 @@ export const businesses = [
     }
   },
   {
-    id:'gabries', name:"Gabrie's Dominican Soul", type:'Dominican', eta:'30–45 min', fee:3.99,
+    id:'gabries',
+    name:"Gabrie's Dominican Soul",
+    type:'Dominican',
+    eta:'30–45 min',
+    fee:3.99,
     description:'Dominican classics, platters & comfort food.',
     categories:{
       Starters:[
@@ -135,7 +164,11 @@ export const businesses = [
     }
   },
   {
-    id:'aguilar', name:'Aguilar Convenience', type:'Convenience Store', eta:'10–20 min', fee:1.99,
+    id:'aguilar',
+    name:'Aguilar Convenience',
+    type:'Convenience Store',
+    eta:'10–20 min',
+    fee:1.99,
     description:'Snacks, drinks, essentials & late-night saves.',
     categories:{
       Drinks:[
@@ -150,7 +183,7 @@ export const businesses = [
         {id:'ag_candy',name:'Candy Bar',price:1.89},
         {id:'ag_popcorn',name:'Microwave Popcorn',price:2.49}
       ],
-      QuickMeals:[
+      "Quick Meals":[
         {id:'ag_noodles',name:'Instant Noodles',price:1.99},
         {id:'ag_pizza',name:'Frozen Pizza',price:7.99},
         {id:'ag_breakfast_sandwich',name:'Breakfast Sandwich',price:4.99}

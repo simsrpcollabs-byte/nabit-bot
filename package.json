@@ -1,7 +1,7 @@
 {
   "name": "nabit-bot",
-  "version": "4.0.0",
-  "description": "Nabit Discord delivery app bot with generated checkout images",
+  "version": "5.0.0",
+  "description": "Complete Nabit Discord ordering bot with dynamic branded checkout/order images",
   "main": "index.js",
   "type": "module",
   "scripts": {
